@@ -2,13 +2,14 @@ package websocket
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 
 	"github.com/gorilla/websocket"
 )
 
-var upgrader = websocket.Upgrader{
+var Upgrader = websocket.Upgrader{
 	ReadBufferSize: 1024,
 	WriteBufferSize: 1024,
 
@@ -18,7 +19,7 @@ var upgrader = websocket.Upgrader{
 
 /* Defines a reader which will listen for new messages being sent
 to our WS endpoint */
-func reader(conn *websocket.Conn) {
+func Reader(conn *websocket.Conn) {
 	for {
 		messageType, p, err := conn.ReadMessage()
 		if err != nil {
@@ -35,17 +36,25 @@ func reader(conn *websocket.Conn) {
 	}
 }
 
-/* Our WebSocket endpoint */
-func ServeWS(w http.ResponseWriter, r *http.Request)	 {
-	fmt.Println(r.Host)
 
-	// upgrade connection to WS connection
-	ws, err := upgrader.Upgrade(w, r, nil)
-	if (err != nil ) {
-		log.Println((err))
+func Writer(conn *websocket.Conn) {
+	for {
+		fmt.Println(("Sending"))
+		messageType, r, err := conn.NextReader()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		w, err := conn.NextWriter(messageType)
+		if _, err := io.Copy(w, r); err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		if err := w.Close(); err != nil {
+			fmt.Println(err)
+			return
+		}
 	}
-
-	// listen indefinitely
-	reader(ws)
 }
-

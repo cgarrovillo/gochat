@@ -2,10 +2,27 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
 	"gochat/websocket"
 )
+
+/* Our WebSocket endpoint */
+func serveWS(w http.ResponseWriter, r *http.Request)	 {
+	fmt.Println(r.Host)
+
+	// upgrade connection to WS connection
+	ws, err := websocket.Upgrader.Upgrade(w, r, nil)
+	if (err != nil ) {
+		log.Println((err))
+	}
+	
+	// Start a goroutine for WS Writer
+	go websocket.Writer(ws)
+	// listen for messages indefinitely
+	websocket.Reader(ws)
+}
 
 func setupRoutes() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -13,7 +30,7 @@ func setupRoutes() {
 	})
 
 	// map /ws endpoint to ServeWS function
-	http.HandleFunc("/ws", websocket.ServeWS)
+	http.HandleFunc("/ws", serveWS)
 } 
 
 func main() {
