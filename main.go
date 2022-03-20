@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"gochat/websocket"
+	"gochat/pkg/websocket"
 )
 
 /* Our WebSocket endpoint */
