@@ -9,12 +9,24 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var Upgrader = websocket.Upgrader{
+// Internal WS upgrader
+var upgrader = websocket.Upgrader{
 	ReadBufferSize: 1024,
 	WriteBufferSize: 1024,
 
 	/* Check the origin of connection */
 	CheckOrigin: func(r *http.Request) bool {return true},
+}
+
+// Upgrades a request to a WebSocket connection
+func Upgrade(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	return conn, nil
 }
 
 /* Defines a reader which will listen for new messages being sent

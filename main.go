@@ -2,35 +2,44 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
 	"gochat/pkg/websocket"
 )
 
 /* Our WebSocket endpoint */
-func serveWS(w http.ResponseWriter, r *http.Request)	 {
+func serveWS(pool *websocket.Pool, w http.ResponseWriter, r *http.Request)	 {
 	fmt.Println(r.Host)
 
-	// upgrade connection to WS connection
-	ws, err := websocket.Upgrader.Upgrade(w, r, nil)
-	if (err != nil ) {
-		log.Println((err))
+	conn, err := websocket.Upgrade(w, r)
+	if err != nil {
+		fmt.Fprintf(w, "%+v\n", err)
 	}
-	
-	// Start a goroutine for WS Writer
-	go websocket.Writer(ws)
-	// listen for messages indefinitely
-	websocket.Reader(ws)
+
+	client := &websocket.Client{
+		Conn: conn,
+		Pool: pool,
+	}
+
+	// Send this client to register channel
+	pool.Register <- client
+	client.Read()
 }
 
 func setupRoutes() {
+	pool := websocket.NewPool()
+	
+	// Start in own goroutine
+	go pool.Start()
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Simple server")
 	})
 
-	// map /ws endpoint to ServeWS function
-	http.HandleFunc("/ws", serveWS)
+
+	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		serveWS(pool, w, r)
+	})
 } 
 
 func main() {
